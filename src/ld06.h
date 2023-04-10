@@ -17,12 +17,15 @@ class LD06{
 public:
     LD06(int pin, HardwareSerial& serial = Serial1);
 
+    void begin();
+
     // Read data from lidar
     bool readData();
     bool readFullScan();
 
     // Print Data over Serial
     void printScanCSV();      // Print full scan using csv format
+    void printScanLidarView();
     void printScanTeleplot(); // Print full scan using teleplot format (check :https://teleplot.fr/)
 
     // Settings
@@ -55,10 +58,10 @@ private:
     const int _pin;
 
     // Filtering Settings
-    int _minDist = 0;     // Minimum Distance
-    int _maxDist = 1000;  // Maximum Distance
-    int _minAngle = 0;    // Minimum angle
-    int _maxAngle = 360;  // Maximum angle
+    int _minDist = 0;     // Minimum Distance mm
+    int _maxDist = 1000;  // Maximum Distance mm
+    int _minAngle = 0;    // Minimum angle °
+    int _maxAngle = 360;  // Maximum angle °
     int _threshold = 100; // Minimum point intensity
 
     // Data

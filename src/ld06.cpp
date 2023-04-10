@@ -11,7 +11,9 @@ const uint8_t VER_SIZE = 0x2c;
 //#define LIDAR_SERIAL Serial1
 #define LIDAR_SERIAL (*_lidarSerial)
 
-LD06::LD06(int pin, HardwareSerial& serial) : _pin(pin), _lidarSerial(&serial){
+LD06::LD06(int pin, HardwareSerial& serial) : _pin(pin), _lidarSerial(&serial){}
+
+void LD06::begin(){
     LIDAR_SERIAL.begin(230400, SERIAL_8N1);
     pinMode(_pin, OUTPUT);
     digitalWrite(_pin, HIGH);
@@ -126,8 +128,8 @@ bool LD06::readFullScan(){
 
             data.angle = angles[i];
             data.distance = distances[i];
-            data.x = data.distance * cos(data.angle * PI / 180);
-            data.y = -data.distance * sin(data.angle * PI / 180);
+            data.x = data.distance * cos(data.angle * DEG_TO_RAD);
+            data.y = -data.distance * sin(data.angle * DEG_TO_RAD);
             data.intensity = confidences[i];
             fullScan.push_back(data);
         }
@@ -181,6 +183,17 @@ void LD06::printScanTeleplot(){
     }
     Serial.println("|xy");
 }
+
+// Print full scan using teleplot format (check :https://teleplot.fr/)
+void LD06::printScanLidarView(){
+    Serial.print(">lidar:");
+    for (uint16_t i = 0; i < scan.size(); i++)
+    {
+        Serial.print(String() + scan[i].angle + ":" + scan[i].distance + ";");
+    }
+    Serial.println("|ar"); //angle radius
+}
+
 
 // Settings
 void LD06::enableCRC(){
