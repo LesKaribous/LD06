@@ -1,5 +1,7 @@
 #pragma once
 #include <vector>
+#include <cstdint>
+#include <Arduino.h>
 
 const uint8_t PTS_PER_PACKETS = 12;
 
@@ -13,7 +15,7 @@ struct DataPoint{
 
 class LD06{
 public:
-    LD06(int pin);
+    LD06(int pin, HardwareSerial& serial = Serial1);
 
     // Read data from lidar
     bool readData();
@@ -69,8 +71,11 @@ private:
     float _angleStep;
     int _timeStamp;
 
+    //Serial
+    HardwareSerial* _lidarSerial;
+
     // Reading buffers
-    uint16_t angles[PTS_PER_PACKETS];
+    float angles[PTS_PER_PACKETS];
     uint16_t distances[PTS_PER_PACKETS];
     uint8_t confidences[PTS_PER_PACKETS];
 };

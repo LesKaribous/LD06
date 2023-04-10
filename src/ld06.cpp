@@ -8,9 +8,10 @@ const uint8_t PACKET_SIZE = 47; // note: 1(Start)+1(Datalen)+2(Speed)+2(SAngle)+
 const uint8_t HEADER = 0x54;
 const uint8_t VER_SIZE = 0x2c;
 
-#define LIDAR_SERIAL Serial1
+//#define LIDAR_SERIAL Serial1
+#define LIDAR_SERIAL (*_lidarSerial)
 
-LD06::LD06(int pin) : _pin(pin){
+LD06::LD06(int pin, HardwareSerial& serial) : _pin(pin), _lidarSerial(&serial){
     LIDAR_SERIAL.begin(230400, SERIAL_8N1);
     pinMode(_pin, OUTPUT);
     digitalWrite(_pin, HIGH);
@@ -115,7 +116,7 @@ bool LD06::readFullScan(){
                     scan.clear();
                     for (uint16_t j = 0; j < fullScan.size(); j++)
                     {
-                        if(_useFiltering && filter(fullScan[j]))
+                        //if(_useFiltering && filter(fullScan[j]))
                             scan.push_back(fullScan[j]);
                     }
                     fullScan.clear();
