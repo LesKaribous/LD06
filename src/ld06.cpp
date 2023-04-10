@@ -19,7 +19,7 @@ void LD06::begin(){
     digitalWrite(_pin, HIGH);
 }
 
-/* Read lidar packet data without checking CRC,
+/* Read lidar packet data,
  * return : true if a valid package was received
  */
 bool LD06::readData(){
@@ -102,7 +102,7 @@ bool LD06::readFullScan(){
     bool newScan = false;
     DataPoint data;
 
-    if (readData())
+    if(readData())
     {
         for (int i = 0; i < PTS_PER_PACKETS; i++)
         {
@@ -122,6 +122,51 @@ bool LD06::readFullScan(){
                             scan.push_back(fullScan[j]);
                     }
                     fullScan.clear();
+
+                }
+            }
+            lastAngle = angles[i];
+
+            data.angle = angles[i];
+            data.distance = distances[i];
+            data.x = data.distance * cos(data.angle * DEG_TO_RAD);
+            data.y = -data.distance * sin(data.angle * DEG_TO_RAD);
+            data.intensity = confidences[i];
+            fullScan.push_back(data);
+        }
+    }
+    return newScan;
+}
+
+// Read lidar packets and return true when a new full 360° scan is available
+bool LD06::readScan(int count){
+    static std::vector<DataPoint> fullScan;
+    static bool isInit = false;
+    static float lastAngle = 0;
+    bool newScan = false;
+    DataPoint data;
+
+    if(readData())
+    {
+        for (int i = 0; i < PTS_PER_PACKETS; i++)
+        {
+            if (fullScan.size() > count)
+            {
+                if (!isInit)
+                {
+                    isInit = true;
+                }
+                else
+                {
+                    newScan = true;
+                    scan.clear();
+                    for (uint16_t j = 0; j < fullScan.size(); j++)
+                    {
+                        //if(_useFiltering && filter(fullScan[j]))
+                            scan.push_back(fullScan[j]);
+                    }
+                    fullScan.clear();
+
                 }
             }
             lastAngle = angles[i];

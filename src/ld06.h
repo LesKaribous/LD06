@@ -21,6 +21,7 @@ public:
 
     // Read data from lidar
     bool readData();
+    bool readScan(int count);
     bool readFullScan();
 
     // Print Data over Serial
