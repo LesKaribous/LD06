@@ -13,6 +13,34 @@ struct DataPoint{
     uint8_t intensity; // 0-255
 };
 
+struct Sector{
+    std::vector<float> distances;
+    int averageDistance = 0; // mm
+    float minDist = 0;
+    float maxDist = 0;
+
+    void compute(){
+        averageDistance = 0;
+        minDist = infinityf();
+        maxDist = 0;
+        for (size_t i = 0; i < distances.size(); i++){
+            averageDistance += distances[i];
+            if(distances[i] < minDist) minDist = distances[i];
+            if(distances[i] > maxDist) maxDist = distances[i];
+        }
+        averageDistance /= distances.size();
+        if(minDist == infinityf()) minDist = 10000;
+    }
+
+    void clear(){
+        distances.clear();
+    }
+
+    void Add(const DataPoint& p){
+        distances.push_back(p.distance);
+    }
+};
+
 class LD06{
 public:
     LD06(int pin, HardwareSerial& serial = Serial1);
@@ -27,6 +55,8 @@ public:
     // Print Data over Serial
     void printScanCSV();      // Print full scan using csv format
     void printScanLidarView();
+    void printFOVLidarView();
+    void printSectorsLidarView();
     void printScanTeleplot(); // Print full scan using teleplot format (check :https://teleplot.fr/)
 
     // Settings
@@ -41,6 +71,12 @@ public:
     void setMinAngle(int minAngle);
     void setDistanceRange(int minDist, int maxDist);
     void setAngleRange(int minAngle, int maxAngle);
+
+    //Sectors
+    void enableSectoring();
+    void disableSectoring();
+    void setSectorsResolution(int angle);
+    float getDistanceAtAngle(int angle); //Faster with sectoring enable
 
     // Getters
     inline float getSpeed() const { return _speed; }
@@ -67,6 +103,11 @@ private:
 
     // Data
     std::vector<DataPoint> scan;
+
+    //Sectoring
+    std::vector<Sector> sectors;
+    int _sectorResolution = 10;
+    bool _useSectoring = false;
 
     // Temporary variables
     float _speed;
