@@ -13,32 +13,20 @@ struct DataPoint{
     uint8_t intensity; // 0-255
 };
 
+struct PolarVector{
+    float angle, distance;
+};
+
 struct Sector{
     std::vector<float> distances;
-    int averageDistance = 0; // mm
+    float averageAngle; //degrees
+    float averageDistance = 0; // mm
     float minDist = 0;
     float maxDist = 0;
 
-    void compute(){
-        averageDistance = 0;
-        minDist = infinityf();
-        maxDist = 0;
-        for (size_t i = 0; i < distances.size(); i++){
-            averageDistance += distances[i];
-            if(distances[i] < minDist) minDist = distances[i];
-            if(distances[i] > maxDist) maxDist = distances[i];
-        }
-        averageDistance /= distances.size();
-        if(minDist == infinityf()) minDist = 10000;
-    }
-
-    void clear(){
-        distances.clear();
-    }
-
-    void Add(const DataPoint& p){
-        distances.push_back(p.distance);
-    }
+    void compute();
+    void clear();
+    void Add(const DataPoint& p);
 };
 
 class LD06{
@@ -77,6 +65,7 @@ public:
     void disableSectoring();
     void setSectorsResolution(int angle);
     float getDistanceAtAngle(int angle); //Faster with sectoring enable
+    std::vector<PolarVector> getAverageDistanceField(); //Faster with sectoring enable
 
     // Getters
     inline float getSpeed() const { return _speed; }

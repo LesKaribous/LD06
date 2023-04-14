@@ -155,8 +155,15 @@ bool LD06::readScan(int count){
                 }else{
                     newScan = true;
                     scan.clear();
-                    sectors.clear();
-                    if(_useSectoring)sectors.resize(360/_sectorResolution);
+                    
+
+                    if(_useSectoring){
+                        sectors.clear();
+                        sectors.resize(360.0/_sectorResolution);
+                        for(int i = 0; i < sectors.size() ; i++){
+                            sectors[i].averageAngle = float(i) * 360.0/float(_sectorResolution);
+                        }
+                    }
 
                     for (uint16_t j = 0; j < fullScan.size(); j++){
                         if(!_useFiltering || filter(fullScan[j])){
@@ -167,6 +174,7 @@ bool LD06::readScan(int count){
                             }
                         }
                     }
+
                     if(_useSectoring){
                         for(Sector& sector : sectors ){
                             sector.compute();
@@ -230,20 +238,84 @@ bool LD06::filter(const DataPoint &point){
 
     //if(_minAngle >= 0 && point.angle < _minAngle) return false;
     //if( point.angle > _maxAngle) return false;
-
 }
 
+//Sectors
+void Sector::compute(){
+    averageDistance = 0;
+    minDist = infinityf();
+    maxDist = 0;
+    for (size_t i = 0; i < distances.size(); i++){
+        averageDistance += distances[i];
+        if(distances[i] < minDist) minDist = distances[i];
+        if(distances[i] > maxDist) maxDist = distances[i];
+    }
+    if(distances.size() != 0) averageDistance /= distances.size();
+    if(minDist == infinityf()) minDist = 10000;
+}
 
-    //Sectors
+void Sector::clear(){
+    distances.clear();
+    minDist = 0;
+    maxDist = 0;
+    averageDistance = 0;
+}
+
+void Sector::Add(const DataPoint& p){
+    distances.push_back(p.distance);
+}
 
 void LD06::setSectorsResolution(int angle){
+    _sectorResolution = angle;
     sectors.clear();
     sectors.resize(360/angle); //Reserve sector count
 }
 
 float LD06::getDistanceAtAngle(int angle){ //Faster with sectoring enable
-    int index = angle/_sectorResolution;
-    return sectors[index].averageDistance;
+    if(_useSectoring){
+        int index = angle/_sectorResolution;
+        return sectors[index].averageDistance;
+    }else{
+        if(scan.size() == 0) return 0;
+        float averageDistance = 0;
+        int count = 0;
+        for(auto& point : scan){
+            if(point.angle > angle - 1 && point.angle < angle - +1 ){ //map on 360°
+                averageDistance += point.distance;
+                count++;
+            }
+        }
+        return count == 0 ? 0 : averageDistance/float(count);
+    }
+}
+
+std::vector<PolarVector> LD06::getAverageDistanceField(){
+
+    std::vector<PolarVector> field;
+    
+    if(_useSectoring){
+        for(auto& sector : sectors) 
+            if(sector.averageDistance != 0 ) field.push_back({sector.averageAngle, sector.averageDistance});
+        return field;
+    }else{ //Give a field on 360 degrees.
+        if(scan.size() == 0) return field;
+        int count = 1;
+        float currentAngle = scan[0].angle;
+        float averageDistance = scan[0].distance;
+
+        for(auto& point : scan){
+            if(point.angle > currentAngle + 1){ //map on 360°
+                field.push_back({currentAngle, averageDistance/count});
+                currentAngle = point.angle;
+                averageDistance = point.distance;
+                count = 1;
+            }else{
+                averageDistance += point.distance;
+                count ++;
+            }
+        }
+        return field;
+    }
 }
 
 
