@@ -1,33 +1,9 @@
 #pragma once
-#include <vector>
-#include <cstdint>
+
+#include "filter.h"
 #include <Arduino.h>
 
 const uint8_t PTS_PER_PACKETS = 12;
-
-struct DataPoint{
-    uint16_t distance; // mm
-    float angle;       // degrees
-    int16_t x;         // mm
-    int16_t y;         // mm
-    uint8_t intensity; // 0-255
-};
-
-struct PolarVector{
-    float angle, distance;
-};
-
-struct Sector{
-    std::vector<float> distances;
-    float averageAngle; //degrees
-    float averageDistance = 0; // mm
-    float minDist = 0;
-    float maxDist = 0;
-
-    void compute();
-    void clear();
-    void Add(const DataPoint& p);
-};
 
 class LD06{
 public:
@@ -52,6 +28,10 @@ public:
     void disableCRC(); // Disable CRC checking
     void enableFiltering();
     void disableFiltering();
+
+    void setFilter(FilterType type); // Set filter
+
+    //Filtering
     void setIntensityThreshold(int threshold);
     void setMaxDistance(int maxDist);
     void setMinDistance(int minDist);
@@ -59,6 +39,8 @@ public:
     void setMinAngle(int minAngle);
     void setDistanceRange(int minDist, int maxDist);
     void setAngleRange(int minAngle, int maxAngle);
+
+    void setCartesianBoundaries(float minx, float miny, float maxx, float maxy);
 
     //Sectors
     void enableSectoring();
@@ -78,25 +60,27 @@ private:
     void computeData(uint8_t *values);
     bool filter(const DataPoint &point);
 
+    //Attributes
+    const int _pin;
+    AbstractFilter* _filter = nullptr;
+
     // Settings
     bool _useCRC = true;
-    bool _useFiltering = false;
-    const int _pin;
-
-    // Filtering Settings
-    int _minDist = 0;     // Minimum Distance mm
-    int _maxDist = 1000;  // Maximum Distance mm
-    int _minAngle = 0;    // Minimum angle °
-    int _maxAngle = 360;  // Maximum angle °
-    int _threshold = 100; // Minimum point intensity
+    bool _useFiltering = true; //If set it will be used
 
     // Data
     std::vector<DataPoint> scan;
 
+    
     //Sectoring
     std::vector<Sector> sectors;
-    int _sectorResolution = 10;
+    int _sectorResolution = 10; //° range (each sector is x° wide)
     bool _useSectoring = false;
+
+    //Grid
+    std::vector<Cell> grid;
+    int _gridResolution = 50; //mm range (each cell is x mm wide)
+    bool _useGrid = false;
 
     // Temporary variables
     float _speed;

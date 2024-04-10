@@ -388,6 +388,10 @@ void LD06::disableFiltering(){
     _useFiltering = false;
 }
 
+void LD06::setFilter(FilterType type){
+    _filterType = type;
+}
+
 void LD06::enableSectoring(){
     _useSectoring = true;
 }
@@ -424,4 +428,11 @@ void LD06::setDistanceRange(int minDist, int maxDist){
 void LD06::setAngleRange(int minAngle, int maxAngle){
     _minAngle = minAngle;
     _maxAngle = maxAngle;
+}
+
+void LD06::setCartesianBoundaries(float minx, float miny, float maxx, float maxy){
+    _cart_min_x = minx;
+    _cart_min_y = miny;
+    _cart_max_x = maxx;
+    _cart_max_y = maxy;
 }
