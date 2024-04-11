@@ -1,9 +1,15 @@
 #pragma once
 
+#include "grid.h"
 #include "filter.h"
 #include <Arduino.h>
+#include <deque>
+
+#define MAX_POINTS 1024
+#define PERSISTENCE 500//ms
 
 const uint8_t PTS_PER_PACKETS = 12;
+
 
 class LD06{
 public:
@@ -13,41 +19,41 @@ public:
 
     // Read data from lidar
     bool readData();
-    bool readScan(int count);
-    bool readFullScan();
+    void readScan();
 
     // Print Data over Serial
     void printScanCSV();      // Print full scan using csv format
-    void printScanLidarView();
-    void printFOVLidarView();
-    void printSectorsLidarView();
     void printScanTeleplot(); // Print full scan using teleplot format (check :https://teleplot.fr/)
 
     // Settings
     void enableCRC();  // Enable CRC checking
     void disableCRC(); // Disable CRC checking
-    void enableFiltering();
-    void disableFiltering();
 
-    void setFilter(FilterType type); // Set filter
+    inline void enablePolarFiltering(){ _usePolarFiltering = true; }
+    inline void enableCartesianFiltering(){ _useCartesianFiltering = true; }
+    inline void disablePolarFiltering(){ _usePolarFiltering = false; }
+    inline void disableCartesianFiltering(){ _useCartesianFiltering = false; }
+    bool useFiltering() const;
+
+    inline void enablePolarGrid(){ _usePolarGrid = true; }
+    inline void enableCartesianGrid(){ _useCartesianGrid = true; }
+    inline void disablePolarGrid(){ _usePolarGrid = false; }
+    inline void disableCartesianGrid(){ _useCartesianGrid = false; }
+    bool useGrid()const;
+
+    inline void disableGrid(){ _useCartesianGrid = _usePolarGrid = false; }
+    inline void disableFiltering(){ _useCartesianFiltering = _usePolarFiltering = false; }
+
+    void setPolarResolution(float);
+    void setCartesianSize(float w, float h);
+    void setPolarRange(float minDist, float maxDist, float minangle, float maxangle);
+
+
+    void setPosition(float x, float y, float theta); // Set Abs position
 
     //Filtering
     void setIntensityThreshold(int threshold);
-    void setMaxDistance(int maxDist);
-    void setMinDistance(int minDist);
-    void setMaxAngle(int maxAngle);
-    void setMinAngle(int minAngle);
-    void setDistanceRange(int minDist, int maxDist);
-    void setAngleRange(int minAngle, int maxAngle);
-
-    void setCartesianBoundaries(float minx, float miny, float maxx, float maxy);
-
-    //Sectors
-    void enableSectoring();
-    void disableSectoring();
-    void setSectorsResolution(int angle);
     float getDistanceAtAngle(int angle); //Faster with sectoring enable
-    std::vector<PolarVector> getAverageDistanceField(); //Faster with sectoring enable
 
     // Getters
     inline float getSpeed() const { return _speed; }
@@ -59,28 +65,30 @@ private:
     bool readDataNoCRC();
     void computeData(uint8_t *values);
     bool filter(const DataPoint &point);
+    void clear();
+    void store(DataPoint);
 
     //Attributes
     const int _pin;
-    AbstractFilter* _filter = nullptr;
+    PolarFilter polar_filter;
+    PolarGrid polar_grid;
+    CartesianFilter cart_filter;
+    CartesianGrid cart_grid;
 
     // Settings
     bool _useCRC = true;
-    bool _useFiltering = true; //If set it will be used
+    bool _useCartesianFiltering = true;
+    bool _usePolarFiltering = true;
+    bool _useCartesianGrid = true;
+    bool _usePolarGrid = true;
+    int _threshold = 100; // Minimum point intensity
 
     // Data
-    std::vector<DataPoint> scan;
+    std::deque<DataPoint> scan;
 
-    
-    //Sectoring
-    std::vector<Sector> sectors;
-    int _sectorResolution = 10; //° range (each sector is x° wide)
-    bool _useSectoring = false;
-
-    //Grid
-    std::vector<Cell> grid;
-    int _gridResolution = 50; //mm range (each cell is x mm wide)
-    bool _useGrid = false;
+    float lidarPos_x = 0; //mm
+    float lidarPos_y = 0; //mm
+    float lidarPos_theta = 0; //rad
 
     // Temporary variables
     float _speed;

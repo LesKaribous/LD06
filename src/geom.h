@@ -3,6 +3,7 @@
 #include "geom.h"
 
 struct DataPoint{
+    long birth;
     uint16_t distance;  // mm
     float angle;        // degrees
     float x, y;         // mm
