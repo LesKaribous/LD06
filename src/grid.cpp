@@ -6,12 +6,12 @@ PolarGrid::PolarGrid() : AbstractGrid(POLAR){
 }
 
 void PolarGrid::store(DataPoint point){
-    int index = point.angle / float(_sectorResolution);
+    int index = point.angle / _sectorResolution;
     sectors[index].add(point);
 }
 
 void PolarGrid::unstore(DataPoint point){
-    int index = point.angle / float(_sectorResolution);
+    int index = point.angle / _sectorResolution;
     sectors[index].remove(point);
 }
 
@@ -26,7 +26,7 @@ void PolarGrid::printSectors(){
     Serial.print(">sectors:");
     for (uint16_t i = 0; i < sectors.size(); i++)
     { //Print > point count : average distance : min dist : max dist
-        Serial.print(String() + i + ":" + sectors[i].averageDistance + ";");
+        Serial.print(String() + i + ":" + sectors[i].avgDistance + ";");
     }
     Serial.println();
 
@@ -37,39 +37,48 @@ void PolarGrid::clear(){
     sectors.resize(360.0/_sectorResolution);
 }
 
-void PolarGrid::setSectorsResolution(int angle){
+void PolarGrid::setSectorsResolution(float angle){
     _sectorResolution = angle;
     sectors.clear();
     sectors.resize(360/angle); //Reserve sector count
     for(int i = 0; i < sectors.size() ; i++){
+        sectors[i].points.reserve(MAX_POINTS);
         sectors[i].averageAngle = float(i) * 360.0/float(_sectorResolution);
     }
 }
 
-float PolarGrid::getDistanceAtAngle(int angle){
+float PolarGrid::getDistanceAtAngle(float angle){
     int index = angle/_sectorResolution;
-    return sectors[index].averageDistance;
+    if(sectors[index].avgDistance < 5) return 0;
+    return sectors[index].avgDistance;
 }
 
 //Sectors
 void PolarGrid::Sector::compute(){
-    if(count == 0) averageDistance = 0;
-    else averageDistance = distancesSum/float(count);
+    avgDistance = 0;
+    for(auto d : points){
+        avgDistance += d;
+    }
+    avgDistance /= points.size();
 }
 
 void PolarGrid::Sector::clear(){
-    distancesSum = 0;
-    averageDistance = 0;
+    avgDistance = 0;
+    points.clear();
+    points.reserve(MAX_POINTS);
 }
 
 void PolarGrid::Sector::add(const DataPoint& p){
-    distancesSum +=p.distance;
-    count++;
+    if(points.size()-1 == MAX_POINTS)clear();
+    points.push_back(p.distance);
 }
 
 void PolarGrid::Sector::remove(const DataPoint& p){
-    distancesSum -= p.distance;
-    count--;
+    for(auto i = points.begin(); i < points.end(); i++){
+        if(int(p.distance) == *i) points.erase(i);
+        return;
+    }
+     if(points.size()>0)points.erase(points.begin());
 }
 
 

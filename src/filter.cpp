@@ -1,7 +1,7 @@
 #include "filter.h"
 
 PolarFilter::PolarFilter() : AbstractFilter(POLAR){
-    _minDist = 0;     // Minimum Distance mm
+    _minDist = 200;     // Minimum Distance mm
     _maxDist = 1000;  // Maximum Distance mm
     _minAngle = 0;    // Minimum angle °
     _maxAngle = 360;  // Maximum angle °
@@ -22,28 +22,16 @@ bool PolarFilter::pass(DataPoint point){
     }
 }
 
-void PolarFilter::setMaxDistance(int maxDist){
-    _maxDist = maxDist;
-}
-
-void PolarFilter::setMinDistance(int minDist){
-    _minDist = minDist;
-}
-
-void PolarFilter::setMaxAngle(int maxAngle){
-    _maxAngle = maxAngle;
-}
-
-void PolarFilter::setMinAngle(int minAngle){
-    _minAngle = minAngle;
-}
-
 void PolarFilter::setDistanceRange(int minDist, int maxDist){
     _minDist = minDist;
     _maxDist = maxDist;
 }
 
 void PolarFilter::setAngleRange(int minAngle, int maxAngle){
+    if(minAngle < 0){
+        minAngle + 360;
+        maxAngle + 360;
+    }
     _minAngle = minAngle;
     _maxAngle = maxAngle;
 }
@@ -62,9 +50,9 @@ CartesianFilter::CartesianFilter() : AbstractFilter(CARTESIAN){
 }
 
 bool CartesianFilter::pass(DataPoint point) {
-    return point.x > 0 && point.y > 0 && point.x < _cart_max_x && point.y < _cart_max_y;
+    return point.x > _cart_margin && point.y > _cart_margin && point.x < _cart_max_x-_cart_margin && point.y < _cart_max_y-_cart_margin;
 }
 
-void CartesianFilter::setGridSize(float w, float h){
-    _cart_max_x = w; _cart_max_y = h;
+void CartesianFilter::setRange(float w, float h, float margin){
+    _cart_max_x = w; _cart_max_y = h; _cart_margin = margin;
 }

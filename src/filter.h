@@ -22,10 +22,6 @@ public:
     PolarFilter();
     bool pass(DataPoint) override;
 
-    void setMaxDistance(int maxDist);
-    void setMinDistance(int minDist);
-    void setMaxAngle(int maxAngle);
-    void setMinAngle(int minAngle);
     void setDistanceRange(int minDist, int maxDist);
     void setAngleRange(int minAngle, int maxAngle);
 
@@ -43,10 +39,11 @@ class CartesianFilter : public AbstractFilter{
 public:
     CartesianFilter();
     bool pass(DataPoint) override;
-    void setGridSize(float w, float h);
+    void setRange(float w, float h, float margin);
 private:
     //Cartesian filter
     float _cart_max_x;  //abs rectangle filter
     float _cart_max_y;  //abs rectangle filter
+    float _cart_margin;  //abs filter margin
 };
 

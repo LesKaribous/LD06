@@ -109,20 +109,21 @@ void LD06::readScan(){
 
     if(readData()){
         for (int i = 0; i < PTS_PER_PACKETS; i++){
-            data.angle = angles[i];
-            data.distance = distances[i];
+            data.angle = angles[i]; //degrees relative to lidar origin
+            data.distance = distances[i];//mm
 
             //absolute
-            data.x = lidarPos_x + data.distance * cos(-data.angle * DEG_TO_RAD - lidarPos_theta);
-            data.y = lidarPos_y - data.distance * sin(-data.angle * DEG_TO_RAD - lidarPos_theta);
+            data.x = lidarPos_x + data.distance * cos(-data.angle * DEG_TO_RAD + lidarPos_theta*DEG_TO_RAD);
+            data.y = lidarPos_y - data.distance * sin(-data.angle * DEG_TO_RAD + lidarPos_theta*DEG_TO_RAD);
 
             data.intensity = confidences[i];
             
-            if(!useFiltering() || filter(data)){
+            if(filter(data)){
                 store(data);
             }
         }
     }
+    
     if(_usePolarGrid) polar_grid.compute();
 
 }
@@ -141,6 +142,11 @@ void LD06::setPosition(float x, float y, float theta){
     lidarPos_theta = theta;
 }
 
+void LD06::resetStats(){
+    if(_useCartesianGrid)cart_grid.clear();
+    if(_usePolarGrid)polar_grid.clear();
+}
+
 void LD06::computeData(uint8_t *values){
     _speed = float(values[3] << 8 | values[2]) / 100;
     _FSA = float(values[5] << 8 | values[4]) / 100;
@@ -154,8 +160,13 @@ void LD06::computeData(uint8_t *values){
 
     for (int i = 0; i < PTS_PER_PACKETS; i++)
     {
-        float raw_deg = _FSA + i * _angleStep;
-        angles[i] = (raw_deg <= 360 ? raw_deg : raw_deg - 360);
+        float raw_deg = 360 - _FSA + i * _angleStep;
+        
+        raw_deg = fmodf(raw_deg,360); //[0, 360]
+        if (raw_deg < 0)
+            raw_deg += 360;
+
+        angles[i] = raw_deg;
         confidences[i] = values[8 + i * 3];
         distances[i] = int(values[8 + i * 3 - 1] << 8 | values[8 + i * 3 - 2]);
     }
@@ -163,9 +174,8 @@ void LD06::computeData(uint8_t *values){
 
 // Return true if point pass the filter
 bool LD06::filter(const DataPoint &point){
-    //if(_minAngle < 0 && point.angle < 360+_minAngle) return false;
     if(useFiltering()){
-        return (cart_filter.pass(point) || !_useCartesianGrid) && (polar_filter.pass(point) || !_usePolarFiltering);
+        return (cart_filter.pass(point) || !_useCartesianFiltering) && (polar_filter.pass(point) || !_usePolarFiltering);
     }else return true; //no filter all points pass
 }
 
@@ -187,7 +197,13 @@ void LD06::store(DataPoint point){
 }
 
 float LD06::getDistanceAtAngle(int angle){ //Faster with sectoring enable
+    
+    angle -= lidarPos_theta;
+    angle = fmodf(angle,360); //[0, 360]
+    if (angle < 0)
+        angle += 360;
 
+    //Serial.println(angle);
     if(_usePolarGrid){
         return polar_grid.getDistanceAtAngle(angle);
     }
@@ -196,7 +212,7 @@ float LD06::getDistanceAtAngle(int angle){ //Faster with sectoring enable
     float averageDistance = 0;
     int count = 0;
     for(auto& point : scan){
-        if(point.angle > angle - 1 && point.angle < angle - +1 ){ //map on 360°
+        if(point.angle > angle - 1 && point.angle < angle - 1 ){ //map on 360°
             averageDistance += point.distance;
             count++;
         }
@@ -217,16 +233,19 @@ void LD06::printScanCSV(){
 
 // Print full scan using teleplot format (check :https://teleplot.fr/)
 void LD06::printScanTeleplot(){
-
-    polar_grid.printSectors();
-    return;
-
-    Serial.print(">lidar:");
+    Serial.print(">lidarXY:");
     for (uint16_t i = 0; i < scan.size(); i++)
     {
         Serial.print(String() + scan[i].x + ":" + scan[i].y + ";");
     }
     Serial.println("|xy");
+
+    Serial.print(">lidar:");
+    for (uint16_t i = 0; i < scan.size(); i++)
+    {
+        Serial.print(String() + scan[i].angle + ":" + scan[i].distance + ";");
+    }
+    Serial.println("|np");
 }
 
 
@@ -247,14 +266,12 @@ void LD06::setPolarResolution(float res){
     polar_grid.setSectorsResolution(res);
 }
 
-void LD06::setCartesianSize(float w, float h){
-    cart_filter.setGridSize(w, h);
+void LD06::setCartesianRange(float w, float h, float margin){
+    cart_filter.setRange(w, h, margin);
     cart_grid.setGridSize(w, h);
 }
 
 void LD06::setPolarRange(float minDist, float maxDist, float minangle, float maxangle){
-    polar_filter.setMinAngle(minangle);
-    polar_filter.setMaxAngle(maxangle);
-    polar_filter.setMinDistance(minDist);
-    polar_filter.setMaxDistance(maxDist);
+    polar_filter.setAngleRange(minangle, maxangle);
+    polar_filter.setDistanceRange(minDist,maxDist);
 }

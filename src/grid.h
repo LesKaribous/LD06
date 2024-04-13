@@ -3,6 +3,8 @@
 #include <vector>
 #include <unordered_map>
 
+#define MAX_POINTS 50
+
 class AbstractGrid{
 public:
     enum GridType{
@@ -29,16 +31,14 @@ public:
     void compute() override;
     void clear() override;
 
-    void setSectorsResolution(int angle);
-    float getDistanceAtAngle(int angle); //Faster with sectoring enable
+    void setSectorsResolution(float angle);
+    float getDistanceAtAngle(float angle); //Faster with sectoring enable
     void printSectors();
 
     struct Sector{
-        float distancesSum;
-        int count = 0;
-
         float averageAngle; //degrees
-        float averageDistance = 0; // mm
+        std::vector<int> points;
+        float avgDistance;
 
         void compute();
         void clear();
@@ -48,7 +48,7 @@ public:
 
 private:
     std::vector<Sector> sectors;
-    int _sectorResolution = 10; //° range (each sector is x° wide)
+    float _sectorResolution = 10; //° range (each sector is x° wide)
 };
 
 class CartesianGrid : public AbstractGrid{

@@ -6,7 +6,7 @@
 #include <deque>
 
 #define MAX_POINTS 1024
-#define PERSISTENCE 500//ms
+#define PERSISTENCE 800//ms
 
 const uint8_t PTS_PER_PACKETS = 12;
 
@@ -45,11 +45,12 @@ public:
     inline void disableFiltering(){ _useCartesianFiltering = _usePolarFiltering = false; }
 
     void setPolarResolution(float);
-    void setCartesianSize(float w, float h);
+    void setCartesianRange(float w, float h, float margin);
     void setPolarRange(float minDist, float maxDist, float minangle, float maxangle);
 
-
     void setPosition(float x, float y, float theta); // Set Abs position
+
+    void resetStats();
 
     //Filtering
     void setIntensityThreshold(int threshold);
